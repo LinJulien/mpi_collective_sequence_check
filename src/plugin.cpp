@@ -38,10 +38,10 @@ class my_pass : public gimple_opt_pass {
         {}
         my_pass *clone () { return new my_pass(g);}
 
-        bool gate (function *fun) {printf("In function gate"); return true;}
+        bool gate (function *fun) {printf("In function gate\n"); return true;}
 
         unsigned int execute (function *fun){
-            printf("Executing my_pass with function %s\n", function_name(fun));
+            printf("Executing my_pass on function %s\n", function_name(fun));
             return 0;
         }
 };
