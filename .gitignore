@@ -1,4 +1,4 @@
-./src/*.so
-./src/*.dot
-./src/*.pdf
+src/*.so
+src/*.dot
+src/*.pdf
 
