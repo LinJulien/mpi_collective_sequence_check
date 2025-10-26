@@ -1,6 +1,11 @@
 #include <gcc-plugin.h>
 #include <tree-pass.h>
 #include <context.h>
+#include <tree.h>
+#include <basic-block.h>
+#include <gimple.h>
+#include <gimple-iterator.h>
+
 
 int plugin_is_GPL_compatible;
 
@@ -38,10 +43,23 @@ class my_pass : public gimple_opt_pass {
         {}
         my_pass *clone () { return new my_pass(g);}
 
-        bool gate (function *fun) {printf("In function gate\n"); return true;}
+        bool gate (function *fun) {printf("In function gate : %s\n", function_name(fun)); return true;}
 
         unsigned int execute (function *fun){
-            printf("Executing my_pass on function %s\n", function_name(fun));
+            printf("Executing my_pass on function %s\n", current_function_name());
+
+            gimple_stmt_iterator gsi;
+            gimple* stmt;
+
+            basic_block bb;
+            FOR_EACH_BB_FN(bb, cfun){
+                for (gsi = gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)){
+                    stmt = gsi_stmt(gsi);
+                    printf("Basic block index: %d\n", bb->index);
+                    int line = gimple_lineno(stmt);
+                    printf("line: %d\n", line);
+                }
+            }
             return 0;
         }
 };
