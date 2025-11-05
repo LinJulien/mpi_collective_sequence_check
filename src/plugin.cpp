@@ -38,9 +38,6 @@ cfgviz_internal_dump( function * fun, FILE * out )
 	fprintf(out, "Digraph G{\n");
 
 
-	/*****************************/
-	/***** COMPLETE HERE ********/	
-	/*****************************/
     basic_block bb;
 
     FOR_EACH_BB_FN (bb, cfun)
@@ -120,9 +117,12 @@ class my_pass : public gimple_opt_pass {
             FOR_EACH_BB_FN(bb, cfun){
                 for (gsi = gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)){
                     stmt = gsi_stmt(gsi);
-                    printf("Basic block index: %d\n", bb->index);
-                    int line = gimple_lineno(stmt);
-                    printf("line: %d\n", line);
+                    if (is_gimple_call(stmt)){    
+                        tree function = gimple_call_fndecl(stmt);
+                        const char* function_name = IDENTIFIER_POINTER(DECL_NAME(function));
+                        printf("fonction appelé :%s\n", function_name);
+                    }
+                    
                 }
             }
             cfgviz_dump(fun, "cfg");
