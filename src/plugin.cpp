@@ -9,6 +9,18 @@
 #include <gimple-iterator.h>
 
 
+void function_isol_print(function *fun)
+{
+	printf("\n\n\n");
+	printf("/************************************************************************************************************************/\n");
+	printf("/************************************************************************************************************************/\n");
+	printf("/***********************************            %s               ***********************************/\n", function_name(fun) );
+	printf("/************************************************************************************************************************/\n");
+	printf("/************************************************************************************************************************/\n");
+	printf("\n\n\n");
+
+
+}
 
 /**************** Generate graphviz **************/
 
@@ -83,6 +95,9 @@ cfgviz_dump( function * fun, const char * suffix )
 
 
 
+
+
+
 int plugin_is_GPL_compatible;
 
 
@@ -98,6 +113,23 @@ const pass_data my_pass_data = {
     0,
 };
 
+/* Enum to represent the collective operations */
+enum mpi_collective_code {
+#define DEFMPICOLLECTIVES( CODE, NAME ) CODE,
+#include "../include/MPI_collectives.def"
+	LAST_AND_UNUSED_MPI_COLLECTIVE_CODE
+#undef DEFMPICOLLECTIVES
+} ;
+
+/* Name of each MPI collective operations */
+#define DEFMPICOLLECTIVES( CODE, NAME ) NAME,
+const char *const mpi_collective_name[] = {
+#include "../include/MPI_collectives.def"
+} ;
+#undef DEFMPICOLLECTIVES
+
+
+
 class my_pass : public gimple_opt_pass {
     public:
         my_pass (gcc::context *ctxt)
@@ -105,28 +137,45 @@ class my_pass : public gimple_opt_pass {
         {}
         my_pass *clone () { return new my_pass(g);}
 
-        bool gate (function *fun) {printf("In function gate : %s\n", function_name(fun)); return true;}
+        bool gate (function *fun) 
+        {   
+            function_isol_print(fun);
+            printf("plugin: gate ... %s\n", function_name(fun)); 
+            return true;
+        }
 
-        unsigned int execute (function *fun){
-            printf("Executing my_pass on function %s\n", current_function_name());
+        void detect_mpi_function(gimple* stmt)
+        {
+            if(is_gimple_call(stmt)){
+ 			    tree t ;
+			    const char * callee_name ;
 
-            gimple_stmt_iterator gsi;
-            gimple* stmt;
-
-            basic_block bb;
-            FOR_EACH_BB_FN(bb, cfun){
-                for (gsi = gsi_start_bb(bb); !gsi_end_p(gsi); gsi_next(&gsi)){
-                    stmt = gsi_stmt(gsi);
-                    if (is_gimple_call(stmt)){    
-                        tree function = gimple_call_fndecl(stmt);
-                        const char* function_name = IDENTIFIER_POINTER(DECL_NAME(function));
-                        printf("fonction appelé :%s\n", function_name);
-                    }
-                    
+			    t = gimple_call_fndecl( stmt ) ;
+			    callee_name = IDENTIFIER_POINTER(DECL_NAME(t));
+                if(strncmp(callee_name, "MPI_", 4)==0){
+                    printf("MPI function detected : %s\n", callee_name);
                 }
             }
-            cfgviz_dump(fun, "cfg");
-            return 0;
+        }
+
+        unsigned int execute (function *fun)
+        {
+            printf("plugin: execute my_pass on ... %s\n\n\n", current_function_name());
+
+            basic_block bb;
+	        gimple_stmt_iterator gsi;
+	        gimple *stmt;
+            FOR_EACH_BB_FN(bb, cfun)
+            {
+                for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	            {
+		            /* Get the current statement */
+		            stmt = gsi_stmt (gsi);
+                    detect_mpi_function(stmt);
+                }
+            }
+
+			return 0;
         }
 };
 
