@@ -152,10 +152,48 @@ class my_pass : public gimple_opt_pass {
 
 			    t = gimple_call_fndecl( stmt ) ;
 			    callee_name = IDENTIFIER_POINTER(DECL_NAME(t));
-                if(strncmp(callee_name, "MPI_", 4)==0){
-                    printf("MPI function detected : %s\n", callee_name);
+                for(int i=0; i<5; i++)
+                {
+                    if(strcmp(callee_name, mpi_collective_name[i])==0){
+                        printf("MPI function detected : %d\n", i);
+                    }
                 }
             }
+        }
+
+        void init_bb_bitmaps(function *fun)
+		{
+			basic_block bb;
+			bitmap_head* bitmap_array = XNEWVEC(bitmap_head, last_basic_block_for_fn(cfun));
+            FOR_ALL_BB_FN(bb, cfun)
+            {
+				bitmap_initialize(&bitmap_array[bb->index], &bitmap_default_obstack);
+                bb->aux = &bitmap_array[bb->index];
+			}
+		}
+
+        void free_bitmap(bitmap_head* bitmap)
+        {
+            bitmap_release(bitmap);
+        }
+
+		void free_bitmaps(function* fun){
+			basic_block bb;
+			FOR_EACH_BB_FN(bb, fun)
+            {   
+				bitmap_head *bmap = (bitmap_head*) bb->aux;
+				free_bitmap(bmap);
+			}
+		}
+        
+        void nullify_aux(function *fun)
+        {
+            basic_block bb;
+            FOR_EACH_BB_FN(bb, cfun)
+            {
+                bb->aux = nullptr;
+            }
+
         }
 
         unsigned int execute (function *fun)
@@ -174,6 +212,9 @@ class my_pass : public gimple_opt_pass {
                     detect_mpi_function(stmt);
                 }
             }
+            init_bb_bitmaps(cfun);
+			free_bitmaps(cfun);
+            nullify_aux(cfun);
 
 			return 0;
         }
